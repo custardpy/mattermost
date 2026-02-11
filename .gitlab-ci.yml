@@ -1,0 +1,15 @@
+stages:
+  - build
+  - deploy
+
+mm_build:
+  stage: build
+  tags:
+    - podman
+  image: nexus.almaz-rpe.ru/nexus/stable
+  script:
+    - echo "Building mattermost image.."
+    - podman image build . --tag mattermost
+  artifacts:
+    paths:
+      - ./server/dist/
