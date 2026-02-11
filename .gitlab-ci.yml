@@ -6,7 +6,7 @@ mm_build:
   stage: build
   tags:
     - podman
-  image: nexus.almaz-rpe.ru/nexus/stable
+  image: nexus.almaz-rpe.ru/podman/stable
   script:
     - echo "Building mattermost image.."
     - podman image build . --tag mattermost
