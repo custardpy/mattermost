@@ -1,4 +1,4 @@
-FROM nexus.almaz-rpe.ru/mattermost/mattermost-build-server:1.24.11
+FROM mattermost/mattermost-build-server:1.24.11
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
