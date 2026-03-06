@@ -1,4 +1,4 @@
-FROM mattermost/mattermost-build-server:1.24.11
+FROM mattermost/mattermost-build-server:1.24.13
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -6,7 +6,7 @@ RUN mkdir /work
 
 WORKDIR /work
 
-RUN git clone https://github.com/mattermost/mattermost && \
+RUN git clone -b v11.4.2 https://github.com/mattermost/mattermost && \
     sed -i 's/200/2000/' ./mattermost/server/channels/app/limits.go && \
     sed -i 's/250/2500/' ./mattermost/server/channels/app/limits.go
 
