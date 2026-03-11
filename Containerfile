@@ -16,5 +16,5 @@ RUN source $NVM_DIR/nvm.sh && \
     cd ./mattermost/webapp && \
     nvm install && \
     cd ../server && \
-    make build && \
-    make package
+    make build-linux-amd64 && \
+    make package-linux-amd64
