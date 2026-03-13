@@ -1,31 +1,16 @@
 stages:
-  - build
   - deploy
-
-mattermost_build:
-  stage: build
-  tags:
-    - podman
-  image: nexus.almaz-rpe.ru/podman/stable
-  only:
-    - deploy
-  script:
-    - echo "BUILDING MATTERMOST IMAGE.."
-    - podman image build --file ./Containerfile --tag mm-build
-    - podman cp mm-build:/mattermost/server/dist/mattermost*.tar.gz ./mattermost.tar.gz
-  artifacts:
-    paths:
-      - mattermost.tar.gz
-    expire_in: 1 week
 
 mattermost_deploy:
   stage: deploy
   tags:
     - podman
-  image: nexus.almaz-rpe.ru/podman/stable
-  only:
-    - deploy
+  image: $RUNNER_IMAGE
+  rules:
+    - if: $CI_COMMIT_BRANCH == "deploy"
   script:
+    - echo "DOWNLOADING THE TARBALL.."
+    - wget -q --show-progress https://github.com/custardpy/mattermost/releases/latest/download/mattermost.tar.gz
     - chmod og= $ID_ED25519
     - echo "COPYING THE TARBALL.."
     - scp -i $ID_ED25519 -o StrictHostKeyChecking=no ./mattermost.tar.gz root@$DEPLOY_HOST:/root
