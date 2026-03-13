@@ -1,0 +1,3 @@
+# GitLab CI configuration (deprecated)
+.gitlab-ci.yml
+.gitlab-ci.yml.bak

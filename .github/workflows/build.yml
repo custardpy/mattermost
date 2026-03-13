@@ -1,0 +1,106 @@
+name: Build Mattermost
+
+on:
+  push:
+    branches:
+      - deploy
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Build Mattermost Tarball
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Free disk space
+        run: |
+          echo "=== Before cleanup ==="
+          df -h
+
+          # Remove large unused packages
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          
+          # Remove Docker data
+          sudo docker system prune -af
+          sudo docker builder prune -af
+          
+          # Remove Android SDK (saves ~3GB)
+          sudo rm -rf /usr/local/lib/android
+          
+          # Remove CodeQL bundles (saves ~2GB)
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          
+          # Remove large apt packages
+          sudo apt-get remove -y '^aspnetcore-.*' || true
+          sudo apt-get remove -y '^dotnet-.*' || true
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          
+          # Remove cached package managers
+          sudo rm -rf /var/cache/apt/archives
+          sudo rm -rf /var/lib/apt/lists/*
+          
+          echo "=== After cleanup ==="
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Mattermost
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Containerfile
+          target: builder
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+          tags: mm-build:latest
+
+      - name: Extract tarball
+        run: |
+          CONTAINER_ID=$(docker create mm-build:latest)
+          docker cp $CONTAINER_ID:/work/mattermost/server/dist/mattermost-team-linux-amd64.tar.gz ./mattermost.tar.gz
+          docker rm $CONTAINER_ID
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: mattermost-tarball
+          path: mattermost.tar.gz
+          retention-days: 7
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: github.ref == 'refs/heads/deploy'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: mattermost-tarball
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build #${{ github.run_number }}
+          files: mattermost.tar.gz
+          generate_release_notes: true
+          make_latest: true
