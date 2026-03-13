@@ -10,6 +10,7 @@ jobs:
   build:
     name: Build Mattermost Tarball
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,11 +27,14 @@ jobs:
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=local,dest=./output
+          load: true
+          tags: mm-build:latest
 
-      - name: Find and copy tarball
+      - name: Extract tarball
         run: |
-          find ./output -name "mattermost-team-linux-amd64.tar.gz" -exec cp {} ./mattermost.tar.gz \;
+          CONTAINER_ID=$(docker create mm-build:latest)
+          docker cp $CONTAINER_ID:/work/mattermost/server/dist/mattermost-team-linux-amd64.tar.gz ./mattermost.tar.gz
+          docker rm $CONTAINER_ID
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -38,3 +42,4 @@ jobs:
           name: mattermost-tarball
           path: mattermost.tar.gz
           retention-days: 7
+          if-no-files-found: error
