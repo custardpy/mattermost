@@ -2,65 +2,62 @@ stages:
   - build
   - deploy
 
-variables:
-  IMAGE_NAME: $CI_REGISTRY_IMAGE:mm
-  DEPLOY_HOST: mm.almaz-rpe.ru
-  DEPLOY_PATH: /opt/mattermost
-
-build:
+mattermost_build:
   stage: build
-  image: nexus.almaz-rpe.ru/podman/stable:latest
+  tags:
+    - podman
+  image: nexus.almaz-rpe.ru/podman/stable
+  only:
+    - deploy
   script:
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - >
-      podman build
-      -t $IMAGE_NAME:$CI_COMMIT_SHA
-      -t $IMAGE_NAME:latest
-      -f $CI_PROJECT_DIR/Containerfile
-      $CI_PROJECT_DIR
-      --build-arg BUILDKIT_INLINE_CACHE=1
-    - podman push $IMAGE_NAME:$CI_COMMIT_SHA
-    - podman push $IMAGE_NAME:latest
-    - podman create --name mm-extract $IMAGE_NAME:$CI_COMMIT_SHA
-    - podman cp mm-extract:/mattermost.tar.gz ./mattermost.tar.gz
-    - podman rm mm-extract
+    - echo "BUILDING MATTERMOST IMAGE.."
+    - podman image build --file ./Containerfile --tag mm-build
+    - podman cp mm-build:/mattermost/server/dist/mattermost*.tar.gz ./mattermost.tar.gz
   artifacts:
     paths:
       - mattermost.tar.gz
     expire_in: 1 week
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_TAG
 
-deploy:
+mattermost_deploy:
   stage: deploy
-  image: alpine:latest
-  needs:
-    - job: build
-      artifacts: true
-  before_script:
-    - apk add --no-cache openssh-client sshpass
+  tags:
+    - podman
+  image: nexus.almaz-rpe.ru/podman/stable
+  only:
+    - deploy
   script:
-    - echo "Deploying to $DEPLOY_HOST..."
-    - sshpass -p "$DEPLOY_PASSWORD" scp -o StrictHostKeyChecking=no ./mattermost.tar.gz root@$DEPLOY_HOST:$DEPLOY_PATH/mattermost.tar.gz
-    - |
-      sshpass -p "$DEPLOY_PASSWORD" ssh -o StrictHostKeyChecking=no root@$DEPLOY_HOST << 'EOF'
-        set -e
-        cd $DEPLOY_PATH
-        echo "Stopping Mattermost..."
-        systemctl stop mattermost || true
-        echo "Extracting new version..."
-        rm -rf mattermost
-        tar -xzf mattermost.tar.gz
-        echo "Starting Mattermost..."
-        systemctl start mattermost
-        echo "Deployment complete!"
-      EOF
-  environment:
-    name: production
-    url: https://mm.almaz-rpe.ru
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: manual
-    - if: $CI_COMMIT_TAG
-      when: manual
+    - chmod og= $ID_ED25519
+    - echo "COPYING THE TARBALL.."
+    - scp -i $ID_ED25519 -o StrictHostKeyChecking=no ./mattermost.tar.gz root@$DEPLOY_HOST:/root
+    - echo "BACKING UP THE MATTERMOST WORKDIR.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      cp -ra /opt/mattermost/ ~/mattermost-back-$(date +'%F-%H-%M')
+    - echo "BACKING UP THE MATTERMOST DB.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      pg_dump -U mmuser -Fc mattermost > ~/mattermost.sql
+    - echo "UNPACKING THE TARBALL.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      tar -xf mattermost.tar.gz --transform='s,^[^/]\+,\0-upgrade,'
+    - echo "STOPPING THE MATTERMOST SERVICE.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      systemctl stop mattermost.service
+    - echo "REMOVING OLD FILES.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      find /opt/mattermost/ /opt/mattermost/client/ -mindepth 1 -maxdepth 1 \! \( -type d \( -path /opt/mattermost/client -o -path /opt/mattermost/client/plugins -o -path /opt/mattermost/config -o -path /opt/mattermost/logs -o -path /opt/mattermost/plugins -o -path /opt/mattermost/data -o -path /opt/mattermost/cert \) -prune \) | sort | sudo xargs rm -r
+    - echo "COPYING THE UNPACKED FILES.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      cp -an ~/mattermost-upgrade/. /opt/mattermost/
+    - echo "CHANGING THE OWNER && GROUP OF THE MATTERMOST WORKDIR.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      chown -R mattermost:mattermost /opt/mattermost/
+    - echo "STARTING THE MATTERMOST SERVICE.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      systemctl start mattermost.service
