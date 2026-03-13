@@ -10,7 +10,7 @@ mattermost_deploy:
     - if: $CI_COMMIT_BRANCH == "deploy"
   script:
     - echo "DOWNLOADING THE TARBALL.."
-    - wget -q --show-progress https://github.com/custardpy/mattermost/releases/latest/download/mattermost.tar.gz
+    - curl -LO https://github.com/custardpy/mattermost/releases/latest/download/mattermost.tar.gz
     - chmod og= $ID_ED25519
     - echo "COPYING THE TARBALL.."
     - scp -i $ID_ED25519 -o StrictHostKeyChecking=no ./mattermost.tar.gz root@$DEPLOY_HOST:/root
