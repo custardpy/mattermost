@@ -28,17 +28,7 @@ mattermost_deploy:
   script:
     - chmod og= $ID_ED25519
     - echo "COPYING THE TARBALL.."
-    - >
-      scp -i $ID_ED25519 -o StrictHostKeyChecking=no
-      ./mattermost.tar.gz root@$DEPLOY_HOST:/root
-    - echo "UNPACKING THE TARBALL.."
-    - >
-      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
-      tar -xf mattermost.tar.gz --transform='s,^[^/]\+,\0-upgrade,'
-    - echo "STOPPING THE MATTERMOST SERVICE.."
-    - >
-      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
-      systemctl stop mattermost.service
+    - scp -i $ID_ED25519 -o StrictHostKeyChecking=no ./mattermost.tar.gz root@$DEPLOY_HOST:/root
     - echo "BACKING UP THE MATTERMOST WORKDIR.."
     - >
       ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
@@ -47,6 +37,14 @@ mattermost_deploy:
     - >
       ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
       pg_dump -U mmuser -Fc mattermost > ~/mattermost.sql
+    - echo "UNPACKING THE TARBALL.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      tar -xf mattermost.tar.gz --transform='s,^[^/]\+,\0-upgrade,'
+    - echo "STOPPING THE MATTERMOST SERVICE.."
+    - >
+      ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
+      systemctl stop mattermost.service
     - echo "REMOVING OLD FILES.."
     - >
       ssh -i $ID_ED25519 -o StrictHostKeyChecking=no root@$DEPLOY_HOST
