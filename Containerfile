@@ -22,5 +22,6 @@ RUN --mount=type=cache,target=/root/.npm,id=npm-cache \
 # Build server and create amd64 package tarball
 RUN . "$NVM_DIR/nvm.sh" && \
     cd /work/mattermost/server && \
-    GOOS=linux GOARCH=amd64 make build-linux && \
+    make setup-go-work build-client && \
+    GOOS=linux GOARCH=amd64 make build-linux-amd64 && \
     make package-linux-amd64
