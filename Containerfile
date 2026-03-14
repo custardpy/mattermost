@@ -6,7 +6,7 @@ RUN mkdir /work
 WORKDIR /work
 
 # Clone repository and apply limits modifications
-RUN git clone https://github.com/mattermost/mattermost && \
+RUN git clone --depth 1 --branch v11.4.2 https://github.com/mattermost/mattermost && \
     find ./mattermost -name "limits.go" -path "*/app/*" -exec sed -i 's/200/2000/; s/250/2500/' {} \;
 
 ENV NVM_DIR=/root/.nvm
@@ -20,8 +20,7 @@ RUN --mount=type=cache,target=/root/.npm,id=npm-cache \
     npm ci
 
 # Build server and create amd64 package tarball
-# Note: make build compiles both architectures, but we only package amd64
 RUN . "$NVM_DIR/nvm.sh" && \
     cd /work/mattermost/server && \
-    make build && \
+    GOOS=linux GOARCH=amd64 make build-linux && \
     make package-linux-amd64
