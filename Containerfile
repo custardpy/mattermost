@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM mattermost/mattermost-build-server:1.26.2 AS builder
+FROM mattermost/mattermost-build-server:1.26.7 AS builder
 
 RUN mkdir /work
 WORKDIR /work
