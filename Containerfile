@@ -6,7 +6,7 @@ RUN mkdir /work
 WORKDIR /work
 
 # Clone repository and apply limits modifications
-RUN git clone --depth 1 --branch v11.7.0 https://github.com/mattermost/mattermost && \
+RUN git clone --depth 1 --branch v11.10.1 https://github.com/mattermost/mattermost && \
     find ./mattermost -name "limits.go" -exec sed -i 's/200/2000/; s/250/2500/' {} \;
 
 ENV NVM_DIR=/root/.nvm
