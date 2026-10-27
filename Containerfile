@@ -2,9 +2,10 @@
 
 # The workflow reads MATTERMOST_VERSION from this file to name the release, so
 # keep the format `ARG MATTERMOST_VERSION=<tag>` and update it together with
-# BUILD_SERVER_VERSION when upgrading.
+# BUILD_SERVER_VERSION when upgrading. Change the value below to build a
+# different tag; the latest v11 release is pinned here on purpose.
 ARG BUILD_SERVER_VERSION=1.26.10
-ARG MATTERMOST_VERSION=v11.11.3  # Change this to v12.0.1 or another tag as needed
+ARG MATTERMOST_VERSION=v11.11.3
 
 FROM mattermost/mattermost-build-server:${BUILD_SERVER_VERSION} AS builder
 

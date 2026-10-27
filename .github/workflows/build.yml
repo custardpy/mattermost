@@ -32,7 +32,7 @@ jobs:
       - name: Read Mattermost version
         id: mm-version
         run: |
-          version="$(sed -nE 's/^ARG MATTERMOST_VERSION=([^[:space:]]+)$/\1/p' Containerfile)"
+          version="$(sed -nE 's/^[[:space:]]*ARG[[:space:]]+MATTERMOST_VERSION=([^[:space:]#]+).*$/\1/p' Containerfile)"
           if [ -z "$version" ]; then
             echo "::error file=Containerfile::could not read ARG MATTERMOST_VERSION"
             exit 1
