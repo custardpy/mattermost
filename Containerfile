@@ -10,7 +10,7 @@ ARG MATTERMOST_VERSION=v11.11.3
 FROM mattermost/mattermost-build-server:${BUILD_SERVER_VERSION} AS builder
 
 ARG MATTERMOST_VERSION
-# Optional build id (e.g. v12.0.1-build.42); surfaced in the About dialog.
+# Optional build id (e.g. v11.11.3-build.42); surfaced in the About dialog.
 ARG BUILD_NUMBER=""
 
 ENV NVM_DIR=/root/.nvm
