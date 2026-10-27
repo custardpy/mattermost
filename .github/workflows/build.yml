@@ -88,5 +88,17 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: "Mattermost ${{ needs.build.outputs.version }} build #${{ github.run_number }}"
           files: mattermost.tar.gz
-          generate_release_notes: true
+          # Do not generate notes: with old tags pruned the comparison base is
+          # unreliable and pulls in unrelated PRs. Describe the build instead.
+          body: |
+            Custom Mattermost ${{ needs.build.outputs.version }} build.
+
+            | | |
+            |---|---|
+            | **Version** | ${{ needs.build.outputs.version }} |
+            | **Build** | `${{ needs.build.outputs.version }}-build.${{ github.run_number }}` |
+            | **Commit** | `${{ github.sha }}` |
+            | **Branch** | `${{ github.ref_name }}` |
+
+            Linux amd64 team-edition tarball built from the `Containerfile` in this repository.
           make_latest: true
