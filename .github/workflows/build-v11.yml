@@ -2,7 +2,7 @@ name: Build v11
 
 on:
   push:
-    branches: [deploy]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -47,7 +47,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-24.04
-    if: github.event_name == 'push' && github.ref == 'refs/heads/deploy'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
