@@ -4,7 +4,7 @@
 # keep the format `ARG MATTERMOST_VERSION=<tag>` and update it together with
 # BUILD_SERVER_VERSION when upgrading.
 ARG BUILD_SERVER_VERSION=1.26.10
-ARG MATTERMOST_VERSION=v12.0.1
+ARG MATTERMOST_VERSION=v11.11.3  # Change this to v12.0.1 or another tag as needed
 
 FROM mattermost/mattermost-build-server:${BUILD_SERVER_VERSION} AS builder
 
