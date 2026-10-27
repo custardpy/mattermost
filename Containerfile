@@ -9,6 +9,8 @@ ARG MATTERMOST_VERSION=v12.0.1
 FROM mattermost/mattermost-build-server:${BUILD_SERVER_VERSION} AS builder
 
 ARG MATTERMOST_VERSION
+# Optional build id (e.g. v12.0.1-build.42); surfaced in the About dialog.
+ARG BUILD_NUMBER=""
 
 ENV NVM_DIR=/root/.nvm
 ENV CGO_ENABLED=0
@@ -42,6 +44,12 @@ RUN set -eu; \
     grep -qE '^[[:space:]]*maxUsersLimit[[:space:]]+=[[:space:]]*2000$' "$limits"; \
     grep -qE '^[[:space:]]*maxUsersHardLimit[[:space:]]+=[[:space:]]*2500$' "$limits"
 
+# Keep reporting the server version as "dev" instead of the upstream tag. The
+# About dialog only shows CurrentVersion once BuildNumber is not "dev", so this
+# is what keeps "Server Version: dev" while the build number below stays real.
+RUN printf 'LDFLAGS += -X "github.com/mattermost/mattermost/server/public/model.CurrentVersion=dev"\n' \
+        > /work/mattermost/server/config.override.mk
+
 # Build server and client, then create the amd64 package tarball.
 WORKDIR /work/mattermost/server
 RUN --mount=type=cache,target=/go/pkg/mod,id=go-mod \
@@ -50,6 +58,7 @@ RUN --mount=type=cache,target=/go/pkg/mod,id=go-mod \
         && cd /work/mattermost \
         && nvm use \
         && cd server \
+        && build_number="${BUILD_NUMBER:-${MATTERMOST_VERSION#v}}" \
         && make setup-go-work build-client \
-        && GOOS=linux GOARCH=amd64 make build-linux-amd64 \
+        && GOOS=linux GOARCH=amd64 make build-linux-amd64 BUILD_NUMBER="$build_number" \
         && make package-linux-amd64'
