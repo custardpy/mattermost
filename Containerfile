@@ -44,11 +44,16 @@ RUN set -eu; \
     grep -qE '^[[:space:]]*maxUsersLimit[[:space:]]+=[[:space:]]*2000$' "$limits"; \
     grep -qE '^[[:space:]]*maxUsersHardLimit[[:space:]]+=[[:space:]]*2500$' "$limits"
 
-# Keep reporting the server version as "dev" instead of the upstream tag. The
-# About dialog only shows CurrentVersion once BuildNumber is not "dev", so this
-# is what keeps "Server Version: dev" while the build number below stays real.
-RUN printf 'LDFLAGS += -X "github.com/mattermost/mattermost/server/public/model.CurrentVersion=dev"\n' \
-        > /work/mattermost/server/config.override.mk
+# Keep "Server Version: dev" in the About dialog while still reporting a real
+# build number. The dialog falls back to config.Version once BuildNumber is not
+# "dev", and model.CurrentVersion can't be overridden with -X (it is
+# initialised from a slice, so the compiler's runtime init wins), so patch the
+# dialog's version lookup instead. Display-only: headers, `mattermost version`
+# and the plugin API keep reporting the real version.
+RUN set -eu; \
+    about=/work/mattermost/webapp/channels/src/components/about_build_modal/about_build_modal.tsx; \
+    sed -i -E "s/^([[:space:]]*)const version = config\.BuildNumber === 'dev' \? config\.BuildNumber : config\.Version;$/\1const version = 'dev';/" "$about"; \
+    grep -qF "const version = 'dev';" "$about"
 
 # Build server and client, then create the amd64 package tarball.
 WORKDIR /work/mattermost/server
