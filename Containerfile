@@ -67,3 +67,10 @@ RUN --mount=type=cache,target=/go/pkg/mod,id=go-mod \
         && make setup-go-work build-client \
         && GOOS=linux GOARCH=amd64 make build-linux-amd64 BUILD_NUMBER="$build_number" \
         && make package-linux-amd64'
+
+# Export stage: carries only the release tarball, so the multi-GB builder image
+# never has to be loaded into the runner's Docker daemon (the workflow builds
+# with `--output type=local`).
+FROM scratch AS package
+COPY --from=builder /work/mattermost/server/dist/mattermost-team-linux-amd64.tar.gz /mattermost.tar.gz
+
