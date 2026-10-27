@@ -47,7 +47,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-24.04
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/deploy' && startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: read
       id-token: write
@@ -71,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref == 'refs/heads/deploy' && 'v11.11.3-build.' || github.ref }}
+          tag_name: v11.11.3-build.${{ github.run_number }}
           name: Mattermost v11.11.3 Build ${{ github.run_number }}
           body: |
             Built on ${{ github.event.head_commit.timestamp }}
